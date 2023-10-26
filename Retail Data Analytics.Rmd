@@ -4,6 +4,16 @@ output: html_document
 date: "2023-10-25"
 ---
 ```{r}
-
+features_data <- read.csv("/Users/sainivasrangaraju/Library/CloudStorage/OneDrive-IllinoisInstituteofTechnology/DPA/Project/Code/Retail Data Analytics/Datasets/Features data set.csv",na.strings = "NA")
+sales_data <- read.csv("/Users/sainivasrangaraju/Library/CloudStorage/OneDrive-IllinoisInstituteofTechnology/DPA/Project/Code/Retail Data Analytics/Datasets/sales data-set.csv")
+stores_data  <- read.csv("/Users/sainivasrangaraju/Library/CloudStorage/OneDrive-IllinoisInstituteofTechnology/DPA/Project/Code/Retail Data Analytics/Datasets/stores data-set.csv")
+```
+```{r}
+str(stores_data)
+unique(stores_data$Type)
+dim(stores_data)
+```
+```{r}
+summary(stores_data)
 ```
 
