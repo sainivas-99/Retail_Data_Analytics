@@ -16,4 +16,130 @@ dim(stores_data)
 ```{r}
 summary(stores_data)
 ```
+#Data Preprocessing:
+## Problems with Store data:
+  1. Type: Factor...?
+```{r}
+str(sales_data)
+dim(sales_data)
+```
+```{r}
+summary(sales_data)
+```
+##Problems with Sales data:
+  1. Date : chr-> date : Done
+  2. Weekly sales: why is the Weekly_Sales min a negative value?
+  
+##Solving for 1 in sales
+```{r}
+sales_data$Date <- as.Date(sales_data$Date, format = "%d/%m/%Y")
+str(sales_data)
+```
+##Looking into 2 in sales:
+```{r}
+#View(sales_data)
+```
+The Weekly_sales have many negative values, so we can assume that this is due
+to maybe returns or refunds to customers, theft or shrinkage or losses or maybe
+due to promotional discounts. So we keep them as it is.
+```{r}
+head(features_data)
+```
 
+```{r}
+str(features_data)
+dim(features_data)
+```
+```{r}
+summary(features_data)
+```
+
+## Problems with Features Data:
+  1. Date column: chr -> date
+  2. Markdown columns: have NA values, how to deal with them?
+    a. Probably put it as zero, as the promotion is not available all time
+       in all stores.
+  3. CPI has NA values.
+  4. Unemployment Rate has NA values, how to deal with them?
+
+##Solving 1 for features: 
+```{r}
+features_data$Date <- as.Date(features_data$Date, format = "%d/%m/%Y")
+summary(features_data$Date)
+```
+##Looking into 2 for features:
+```{r}
+MD1.na_count <- sum(is.na(features_data$MarkDown1))
+MD1.na_count
+```
+```{r}
+MD2.na_count <- sum(is.na(features_data$MarkDown2))
+MD2.na_count
+```
+```{r}
+MD3.na_count <- sum(is.na(features_data$MarkDown3))
+MD3.na_count
+```
+```{r}
+MD4.na_count <- sum(is.na(features_data$MarkDown4))
+MD4.na_count
+```
+```{r}
+MD5.na_count <- sum(is.na(features_data$MarkDown5))
+MD5.na_count
+```
+```{r}
+features_data$MarkDown1 <- ifelse(is.na(features_data$MarkDown1),0,
+                                  features_data$MarkDown1)
+features_data$MarkDown2 <- ifelse(is.na(features_data$MarkDown2),0,
+                                  features_data$MarkDown2)
+features_data$MarkDown3 <- ifelse(is.na(features_data$MarkDown3),0,
+                                  features_data$MarkDown3)
+features_data$MarkDown4 <- ifelse(is.na(features_data$MarkDown4),0,
+                                  features_data$MarkDown4)
+features_data$MarkDown5 <- ifelse(is.na(features_data$MarkDown5),0,
+                                  features_data$MarkDown5)
+```
+```{r}
+MD1.na_count <- sum(is.na(features_data$MarkDown1))
+MD1.na_count
+```
+```{r}
+MD2.na_count <- sum(is.na(features_data$MarkDown2))
+MD2.na_count
+```
+```{r}
+MD3.na_count <- sum(is.na(features_data$MarkDown3))
+MD3.na_count
+```
+```{r}
+MD4.na_count <- sum(is.na(features_data$MarkDown4))
+MD4.na_count
+```
+```{r}
+MD5.na_count <- sum(is.na(features_data$MarkDown5))
+MD5.na_count
+```
+
+## Dealing with 3 in features
+```{r}
+CPI.na.count <- sum(is.na(features_data$CPI))
+CPI.na.count
+```
+```{r}
+Unemp.na.count <- sum(is.na(features_data$Unemployment))
+Unemp.na.count
+```
+```{r}
+library(dplyr)
+cpi_features_data <- filter(features_data, !is.na(CPI)& !is.na(Unemployment))
+cpi_features_data
+```
+When CPI is NA, then Unemployment is also NA. Gotta check this.
+```{r}
+cormatrix <- cor(cpi_features_data[,-2])
+corrplot::corrplot(cormatrix, method = "number")
+```
+We noticed that there is a negative correlation of -0.3 between CPI and 
+Unemployment, also we got to know that there is significant correlation 
+between Markdown1 and Markdown4.
