@@ -143,3 +143,41 @@ corrplot::corrplot(cormatrix, method = "number")
 We noticed that there is a negative correlation of -0.3 between CPI and 
 Unemployment, also we got to know that there is significant correlation 
 between Markdown1 and Markdown4.
+
+```{r}
+str(stores_data)
+```
+```{r}
+str(sales_data)
+```
+
+```{r}
+head(stores_data)
+```
+```{r}
+head(features_data)
+```
+```{r}
+names(features_data)
+names(sales_data)
+```
+```{r}
+library(lubridate)
+sales_data$Week <- week(sales_data$Date)
+sales_data$Month <- month(sales_data$Date)
+sales_data$Year <- year(sales_data$Date)
+```
+```{r}
+head(sales_data)
+```
+```{r}
+features_data$Week <- week(features_data$Date)
+features_data$Month <- month(features_data$Date)
+features_data$Year <- year(features_data$Date)
+```
+```{r}
+head(features_data)
+```
+```{r}
+summary(sales_data)
+```
