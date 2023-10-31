@@ -4,9 +4,9 @@ output: html_document
 date: "2023-10-25"
 ---
 ```{r}
-features_data <- read.csv("/Users/sainivasrangaraju/Library/CloudStorage/OneDrive-IllinoisInstituteofTechnology/DPA/Project/Code/Retail Data Analytics/Datasets/Features data set.csv",na.strings = "NA")
-sales_data <- read.csv("/Users/sainivasrangaraju/Library/CloudStorage/OneDrive-IllinoisInstituteofTechnology/DPA/Project/Code/Retail Data Analytics/Datasets/sales data-set.csv")
-stores_data  <- read.csv("/Users/sainivasrangaraju/Library/CloudStorage/OneDrive-IllinoisInstituteofTechnology/DPA/Project/Code/Retail Data Analytics/Datasets/stores data-set.csv")
+features_data <- read.csv("/Users/sainivasrangaraju/Desktop/Project/Code/Retail Data Analytics/Datasets/Features data set.csv",na.strings = "NA")
+sales_data <- read.csv("/Users/sainivasrangaraju/Desktop/Project/Code/Retail Data Analytics/Datasets/sales data-set.csv")
+stores_data  <- read.csv("/Users/sainivasrangaraju/Desktop/Project/Code/Retail Data Analytics/Datasets/stores data-set.csv")
 ```
 ```{r}
 str(stores_data)
@@ -181,3 +181,51 @@ head(features_data)
 ```{r}
 summary(sales_data)
 ```
+```{r}
+filtered_sales <- sales_data %>% filter(Year %in% c(2010, 2011, 2012))
+head(filtered_sales)
+```
+
+
+```{r}
+weekly_sales_sum <- filtered_sales %>% group_by(Year, Week) %>%
+  summarise(Total_Weekly_Sales = sum(Weekly_Sales))
+head(weekly_sales_sum)
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(weekly_sales_sum, aes(x = Week, y = Total_Weekly_Sales, color = factor(Year))) +
+  geom_line() +
+  labs(
+    title = "Total Weekly Sales for 2010, 2011, and 2012"
+  ) +
+  scale_x_continuous(breaks = seq(0, 52, by = 4)) +
+  scale_y_continuous(labels = scales::number_format(scale = 1e-3, suffix = "K"))+
+  scale_color_discrete(name = "Year")
+```
+Weeks 6, 14, 26, 47, 51 have local maxima in the total sum over the years 2010, 2011
+and 2012. The weeks 6, 47 and 51 are holiday weeks and hence have higher sales,
+indicating a positive impact of holidays on sales.
+```{r}
+mean_monthly_sales <- filtered_sales %>% group_by(Year, Month) %>%
+  summarise(Mean_Monthly_Sales = mean(Weekly_Sales))
+head(mean_monthly_sales)
+```
+```{r}
+ggplot(mean_monthly_sales, mapping = aes(x = Month, y = Mean_Monthly_Sales,
+                                         color = factor(Year)))+
+  geom_line()+
+  labs(title = "Mean of Sales over weeks")+
+  scale_x_continuous(breaks = seq(0, 12, by = 1))+
+  scale_color_discrete(name = "Year")
+```
+The sales peaked at months 2, 6, 8 and are increasing in months 10-12, as these
+have holidays. Moreover, the mean sales are comparably greater during months:
+5 to 7 excluding holiday effect during the months 10-12. This is likely
+indicating that the sales are higher during the summer.
+```{r}
+
+```
+
