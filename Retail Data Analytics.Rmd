@@ -225,7 +225,12 @@ The sales peaked at months 2, 6, 8 and are increasing in months 10-12, as these
 have holidays. Moreover, the mean sales are comparably greater during months:
 5 to 7 excluding holiday effect during the months 10-12. This is likely
 indicating that the sales are higher during the summer.
+
 ```{r}
-
+features_sales_merged <- merge(sales_data, features_data,
+                               by = c("Store","Date","IsHoliday","Week",
+                                      "Month","Year"))
+merged_data <- merge(stores_data,features_sales_merged,
+               by = "Store")
+head(merged_data)
 ```
-
