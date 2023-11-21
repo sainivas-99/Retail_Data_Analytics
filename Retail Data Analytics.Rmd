@@ -437,10 +437,11 @@ merged_data$Date <- as.Date(merged_data$Date, format="%d/%m/%Y")
 merged_data$Week <- lubridate::week(merged_data$Date)
 
 # Create the Holiday_Ref column based on the specified holiday names
-merged_data$Holiday_Ref <- ifelse(merged_data$Week == 6, "SupperBowl Week",
-                                  ifelse(merged_data$Week == 36, "LaborDay Week",
-                                         ifelse(merged_data$Week == 47, "ThanksGiving Week",
-                                                ifelse(merged_data$Week == 52, "Christmas Week", "Non Holiday Week"))))
+merged_data$Holiday_Ref <- ifelse(merged_data$Week == 6, "SuperBowl Week",
+                           ifelse(merged_data$Week == 36, "LaborDay Week",
+                           ifelse(merged_data$Week == 47|merged_data$Week == 48|
+                                    merged_data$Week == 46, "ThanksGiving Week",
+                           ifelse(merged_data$Week == 52, "Christmas Week", "Non Holiday Week"))))
 
 # Print the updated merged_data
 head(merged_data)
@@ -466,7 +467,9 @@ ggplot(merged_data, aes(x = Store, y = Weekly_Sales, color = Holiday_Ref)) +
   labs(title = "Weekly Sales vs. Store",
        x = "Store",
        y = "Weekly Sales") +
-  scale_x_continuous(breaks = seq(0, 45, by = 1), limits = c(0, 45))
+scale_color_manual(values = c("Non Holiday Week" = "blue", "SuperBowl Week" = "yellow",
+                        "LaborDay Week" = "green", "ThanksGiving Week" = "red",
+                        "Christmas Week" = "purple"))
 ```
 
 The analysis of weekly sales across various stores reveals a prominent surge in sales during Thanksgiving Week (Week 47), suggesting a notable correlation between this holiday period and heightened purchasing activity. Additionally, a general upward trend in holiday sales is observed across most stores, indicating increased customer spending during these periods. While Thanksgiving Week stands out as a high-sales period, store-specific variations in performance during other holidays highlight opportunities for tailored marketing and strategic promotions. The findings suggest the importance of understanding both overarching trends and individual store dynamics for effective sales strategies.
@@ -474,12 +477,129 @@ The analysis of weekly sales across various stores reveals a prominent surge in 
 # Figure 9. Weekely sales vs Temperature
 ```{r, echo=FALSE}
 # Weekly_Sales vs. Temperature
-ggplot(merged_data, aes(x = Temperature, y = Weekly_Sales, color = Holiday_Ref)) +
-  geom_point() +
+ggplot(merged_data)+
+geom_point(aes(x = Temperature,y = Weekly_Sales,color = Holiday_Ref),size=0.7)+
+scale_y_continuous(labels = scales::number_format(scale = 1e-3,suffix = "K"))+
+scale_color_manual(values = c("Non Holiday Week" = "blue", "SuperBowl Week" = "yellow",
+                        "LaborDay Week" = "green", "ThanksGiving Week" = "red",
+                        "Christmas Week" = "purple")) +
   labs(title = "Weekly Sales vs. Temperature",
        x = "Temperature",
-       y = "Weekly Sales") +
-  scale_x_continuous(breaks = seq(-3, 105, by = 2), limits = c(-3, 105))
+       y = "Weekly Sales") 
 ```
 
 The examination of the weekly sales in relation to temperature patterns revealed noteworthy aspects into consumer behavior. The majority of sales happens within a temperature range of 19 to 79 degrees. This indicate a preference for moderate climatic conditions. Further, holidays such as Christmas, SuperBowl, and ThanksGiving showed distinct temperature-sales correlations which saw Christmas and ThanksGiving having increased sales in the range of 17 to 65 degrees, which aligns with a preference for cooler weather during these festivities. The Labor Day, conversely, shows elevated sales in the warmer range of 55 to 90 degrees. Moreover, ThanksGiving proves to be a pivotal driver of high sales as compared to sales in other holidays, emphasizing the significance of strategic planning and targeted marketing efforts during this holiday. This analysis gives the importance of considering holiday dynamics and temperature variations in crafting effective sales strategies.
+
+
+```{r}
+filtered_features_sales_merged <- features_sales_merged %>% group_by(Date) %>%
+  summarise(Weekly_Sales = mean(Weekly_Sales), Temperature = mean(Temperature),
+            Fuel_Price = mean(Fuel_Price), CPI = mean(CPI),
+            Unemployment = mean(Unemployment), IsHoliday = sum(IsHoliday))
+
+filtered_features_sales_merged$IsHoliday <- ifelse(
+  filtered_features_sales_merged$IsHoliday!=0, TRUE, FALSE)
+head(filtered_features_sales_merged)
+```
+
+## Analysing relation b/w Date vs Weekly_Sales, Temperature, Fuel_Price, CPI
+##and Unemployment
+```{r}
+library(gridExtra)
+x_axis <- ggplot(filtered_features_sales_merged, aes(x = Date))
+plot1 <- x_axis +
+  geom_line(aes(y = Weekly_Sales)) 
+  #geom_point(data = subset(data, IsHoliday == TRUE), aes(y = Weekly_Sales), shape = 4, color = "red") +
+  #labs(title = "Weekly Sales/sales on Holiday")
+
+plot2 <- x_axis +
+  geom_line(aes(y = Temperature)) +
+  labs(title = "Temperature")
+
+plot3 <- x_axis +
+  geom_line(aes(y = Fuel_Price)) +
+  labs(title = "Fuel_Price")
+
+plot4 <- x_axis +
+  geom_line(aes(y = CPI)) +
+  labs(title = "CPI")
+
+plot5 <- x_axis +
+  geom_line(aes(y = Unemployment)) +
+  labs(title = "Unemployment")
+
+grid.arrange(plot1, plot2, plot3, plot4, plot5)
+```
+
+
+```{r}
+#Chatgpt provided optimized code
+library(tidyr)
+plot_sales_features <- gather(filtered_features_sales_merged, "attribs",
+                     "Value", -Date, -IsHoliday) 
+
+ggplot(plot_sales_features, aes(Date, Value)) + geom_line(aes(color = Value),
+                                                          linewidth = 1) + facet_grid(attribs~., scales = "free_y",switch = "y") +
+  ylab(NULL) + 
+  theme(strip.background = element_blank(), strip.placement = "outside", 
+        strip.text.y.left = element_text(angle = 0), legend.position = "none")+
+        scale_x_date(date_breaks = "5 months", date_labels = '%Y-%m')
+```
+
+The below are the results of the analysis:
+1. The Weekly Sales are higher at the end of year, especially in the months of
+    Nov-Dec, but over the year it is not increased.
+2. The Weekly Sales are higher nearby holidays.
+3. Fuel Price and CPI shown growth over the years.
+4. Unemployment decreased year after the year.
+5. Temperature is showing a random walk.
+
+```{r}
+library(corrplot)
+correlation_matrix <- cor(filtered_features_sales_merged[,
+      c("Weekly_Sales", "Temperature", "Fuel_Price","IsHoliday", "CPI", 
+        "Unemployment")])
+corrplot(correlation_matrix, method = "number")
+```
+The below are the results of the analysis:
+1. Weekly sales does not show any high correlation with any other parameters.
+2. CPI and Unemployment shows negative correlation.
+3. CPI and Fuel_Price are positively correlated.
+4. Unemployment and Fuel_Price are negatively correlated.
+
+##Analysing total yearly sales
+```{r}
+total_yearly_sales <- filtered_sales %>% group_by(Year) %>% 
+                      summarise(Total_Sales = sum(Weekly_Sales))
+head(total_yearly_sales)
+```
+
+```{r}
+ggplot(total_yearly_sales,aes(x = Year, y = Total_Sales))+
+  geom_bar(stat = "identity", fill = c("blue","orange","yellow"))+
+  labs(title = "Total Sales vs Years")+
+  scale_y_continuous(labels = scales::number_format(scale = 1e-6, suffix = "K"))
+```
+
+```{r}
+plot1 <- ggplot(merged_data, mapping = aes(x = Type))+
+  geom_bar(width = 0.3)+
+  scale_y_continuous(labels = scales::number_format(scale = 1e-3, suffix = "K"))
+plot2 <- ggplot(merged_data, mapping = aes(x = Type, y = Size))+
+  geom_point()
+plot3 <- ggplot(merged_data, mapping = aes(x = Type, y = Weekly_Sales))+
+  geom_boxplot()+
+  scale_y_continuous(limits = c(0, 6e4),
+                  labels = scales::number_format(scale = 1e-3, suffix = "K"))
+grid.arrange(plot1, plot2, plot3, nrow = 1)
+```
+The below are the results of the analysis:
+1. Type A stores are the largest with highest sales, followed by B and then C.
+2. We can notice a relationship between the size of retail stores and 
+   the weekly sales, the bigger the size of the store, higher the weekly sales.
+
+
+```{r}
+
+```
+
