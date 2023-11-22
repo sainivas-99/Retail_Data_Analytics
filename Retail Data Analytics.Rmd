@@ -633,9 +633,7 @@ scale_color_manual(values = c("Non Holiday Week" = "blue", "SuperBowl Week" = "o
 
 
 #Figure 11
-```{r}
-merged_data
-```
+
 ```{r}
 ggplot(merged_data, aes(x = Size, y = Weekly_Sales, color = Holiday_Ref)) +
   geom_point() +
