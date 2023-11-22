@@ -629,7 +629,7 @@ scale_color_manual(values = c("Non Holiday Week" = "blue", "SuperBowl Week" = "o
                         "LaborDay Week" = "green", "ThanksGiving Week" = "red",
                         "Christmas Week" = "purple"))
 ```
-# From the figure 10 we can observe unemployed people are least in visiting the store and on very rear cases people are visiting to the store on the major holidays like ThanksGiving.
+From the figure 10 we can observe unemployed people are least in visiting the store and on very rear cases people are visiting to the store on the major holidays like ThanksGiving.
 
 
 #Figure 11
@@ -648,7 +648,7 @@ scale_color_manual(values = c("Non Holiday Week" = "blue", "SuperBowl Week" = "o
 # So, here the Store size also impacts the sales, which means that when the store size is lesser then the sales also will be lesser except on the important holidays like LaborDay, SuperBowl, ThanksGiving, and Christmas.
 
 
-# Analysis of Markdown Analysis
+# Analysis of Markdown
 ```{r}
 train_markdown <- merged_data[!is.na(merged_data$MarkDown2), ]
 
@@ -698,3 +698,9 @@ barplot(t(as.matrix(train_markdown_type[, -1])), col = rainbow(5), legend.text =
 
 ```
 Here, we observe which store type is using what markdown pricing majorly and through diagram we can see that there are 3 store types A, B, and C respectively. So, majorly Markdown 1 is being used for store types A and B. And least significantly Markdown 5 is being used for storetype C.
+
+
+```{r}
+
+```
+
