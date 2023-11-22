@@ -234,6 +234,9 @@ merged_data <- merge(stores_data,features_sales_merged,
                by = "Store")
 head(merged_data)
 ```
+
+
+Filling NA valued fields to 0
 ```{r}
 # Fill NA/missing values with 0
 merged_data[is.na(merged_data)] <- 0
@@ -250,6 +253,8 @@ summary(merged_data)
 # Sort the dataframe by 'Date'
 merged_data <- merged_data[order(merged_data$Date), ]
 ```
+
+
 ```{r}
 # Extract the 'Dept' column from the dataframe df
 dept_list <- merged_data$Dept
@@ -264,7 +269,9 @@ depts <- as.character(dept_list)
 depts_res <- depts
 ```
 
+To study how different categories of markdowns affect sales, a single function, resch_markdown, was compiled, which allows you to immediately display all the graphs and tables necessary for analysis. The components of the reserch_markdown(markdown_category) function are presented below.
 
+Function for determining the average value for each of the departments:
 ```{r}
 filter_dept_sales <- function(merged_data) {
   if (nrow(merged_data) == 0) {
@@ -285,7 +292,7 @@ filter_dept_sales <- function(merged_data) {
 
 ```
 
-
+Below is the function for plotting a graph sorted in descending order:
 ```{r}
 paint_graph <- function(merged_dept, depts) {
   merged_dept_val <- merged_dept
@@ -313,6 +320,7 @@ paint_graph <- function(merged_dept, depts) {
 ```
 
 
+Below is the function for displaying a table that allows you to study the impact of markdowns of various categories on sales in departments:
 ```{r}
 show_table_depts <- function(depts, val_no, val_have, dif, dif_part, mark) {
   table_mark_list <- data.frame('Department' = depts, "No markdown" = val_no, "There is a markdown mark category" = val_have, "With markdown - without markdown" = dif, "Percentage change" = dif_part)
@@ -324,6 +332,8 @@ show_table_depts <- function(depts, val_no, val_have, dif, dif_part, mark) {
 
 ```
 
+
+Below is the function for constructing a double bar graph:
 ```{r}
 paint_double_graph <- function(depts_res, y1, y2) {
   x1 <- seq(1, length(depts_res)) - 0.15
@@ -350,7 +360,7 @@ paint_double_graph <- function(depts_res, y1, y2) {
 
 ```
 
-
+The function of calculating the difference between average sales:
 ```{r}
 different <- function(have_mark, no_mark) {
   dif <- numeric(length(depts_res))
@@ -362,7 +372,7 @@ different <- function(have_mark, no_mark) {
 }
 ```
 
-
+The function of calculating the difference between average sales as a percentage:
 ```{r}
 different_part <- function(have_mark, no_mark) {
   dif_part <- numeric(length(depts_res))
@@ -374,6 +384,10 @@ different_part <- function(have_mark, no_mark) {
 }
 
 ```
+
+Below is the Selection of records in which the values of all markdowns are equal to 0:
+
+
 
 
 ```{r}
@@ -392,6 +406,8 @@ table_mark0 <- table_mark0[order(table_mark0$Sales, decreasing = TRUE), ]
 # Print the table
 print(table_mark0)
 ```
+
+The function of calculating average weekly sales and changes. Plotting if there is a markdown of a certain category:
 ```{r}
 reserch_markdown <- function(number_MarkDown) {
 
@@ -420,6 +436,7 @@ reserch_markdown <- function(number_MarkDown) {
 }
 ```
 
+Studying the impact of markdowns of the first category
 ```{r}
 reserch_markdown(1)
 ```
@@ -600,6 +617,86 @@ The below are the results of the analysis:
 
 
 ```{r}
+# Figure 10 
+# Weekly_Sales vs. Unemployment
+ggplot(merged_data, aes(x = Unemployment, y = Weekly_Sales, color = Holiday_Ref)) +
+  geom_point() +
+  scale_y_continuous(labels = scales::number_format(scale = 1e-3,suffix = "K")) +
+  labs(title = "Weekly Sales vs. Unemployment",
+       x = "Unemployment",
+       y = "Weekly_Sales") +
+scale_color_manual(values = c("Non Holiday Week" = "blue", "SuperBowl Week" = "orange",
+                        "LaborDay Week" = "green", "ThanksGiving Week" = "red",
+                        "Christmas Week" = "purple"))
+```
+# From the figure 10 we can observe unemployed people are least in visiting the store and on very rear cases people are visiting to the store on the major holidays like ThanksGiving.
+
+
+#Figure 11
+```{r}
+merged_data
+```
+```{r}
+ggplot(merged_data, aes(x = Size, y = Weekly_Sales, color = Holiday_Ref)) +
+  geom_point() +
+  scale_y_continuous(labels = scales::number_format(scale = 1e-3,suffix = "K")) +
+  labs(title = "Weekly Sales vs. Store Size",
+       x = "Store Size",
+       y = "Weekly_Sales") +
+scale_color_manual(values = c("Non Holiday Week" = "blue", "SuperBowl Week" = "orange",
+                        "LaborDay Week" = "green", "ThanksGiving Week" = "red",
+                        "Christmas Week" = "purple"))
+```
+# So, here the Store size also impacts the sales, which means that when the store size is lesser then the sales also will be lesser except on the important holidays like LaborDay, SuperBowl, ThanksGiving, and Christmas.
+
+
+# Analysis of Markdown Analysis
+```{r}
+train_markdown <- merged_data[!is.na(merged_data$MarkDown2), ]
+
+train_markdown <- aggregate(cbind(MarkDown1, MarkDown2, MarkDown3, MarkDown4, MarkDown5) ~ Date, data = train_markdown, mean)
+
+ggplot(train_markdown, aes(x = Date)) +
+  geom_line(aes(y = MarkDown1), color = "blue") +
+  geom_line(aes(y = MarkDown2), color = "red") +
+  geom_line(aes(y = MarkDown3), color = "green") +
+  geom_line(aes(y = MarkDown4), color = "orange") +
+  geom_line(aes(y = MarkDown5), color = "purple") +
+  labs(title = "Timeline Markdown", y = "Markdown", x = "Date") +
+  theme_minimal()  
+```
+```{r}
+# Here in this plot we can observe that the mean sales of the year 2012 are higher and majorly markdown 3 is higher cross year 2012. As we can understand that the markdown 3 has impacted to higher sales at the end of the year 2011.
+
+
+par(mfrow = c(2, 3), mar = c(4, 4, 2, 1))  # 2 rows, 3 columns
+
+hist(train_markdown$MarkDown1, main = "MarkDown1", xlab = "Value", col = "lightgoldenrod", breaks = 6)
+hist(train_markdown$MarkDown2, main = "MarkDown2", xlab = "Value", col = "lightgoldenrod", breaks = 6)
+hist(train_markdown$MarkDown3, main = "MarkDown3", xlab = "Value", col = "lightgoldenrod", breaks = 6)
+hist(train_markdown$MarkDown4, main = "MarkDown4", xlab = "Value", col = "lightgoldenrod", breaks = 6)
+hist(train_markdown$MarkDown5, main = "MarkDown5", xlab = "Value", col = "lightgoldenrod", breaks = 6)
+
+par(mfrow = c(1, 1), mar = c(4, 4, 2, 1))
 
 ```
+Here, each graph depicts that how much of markdown has been done across different markdowns from 1 to 5. And frequency is the number of items that the markdown is being applied.
 
+```{r}
+train_markdown$Month <- format(train_markdown$Date, "%m")  # Extract month from Date
+
+train_markdown_month <- aggregate(cbind(MarkDown1, MarkDown2, MarkDown3, MarkDown4, MarkDown5) ~ Month, data = train_markdown, mean)
+
+barplot(t(as.matrix(train_markdown_month[, -1])), col = rainbow(5), legend.text = colnames(train_markdown_month)[-1], args.legend = list(x = "top"), main = "Stacked Monthwise Markdown", xlab = "Month", ylab = "Markdown")
+
+```
+```{r}
+
+train_markdown_1 <- merged_data[!is.na(merged_data$MarkDown2), ]
+
+train_markdown_type <- aggregate(cbind(MarkDown1, MarkDown2, MarkDown3, MarkDown4, MarkDown5) ~ Type, data = train_markdown_1, mean)
+
+barplot(t(as.matrix(train_markdown_type[, -1])), col = rainbow(5), legend.text = colnames(train_markdown_type)[-1], args.legend = list(x = "topright"), main = "Stacked StoreType Wise", xlab = "Store Type", ylab = "Markdown")
+
+```
+Here, we observe which store type is using what markdown pricing majorly and through diagram we can see that there are 3 store types A, B, and C respectively. So, majorly Markdown 1 is being used for store types A and B. And least significantly Markdown 5 is being used for storetype C.
