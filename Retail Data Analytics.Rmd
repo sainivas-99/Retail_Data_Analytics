@@ -701,6 +701,136 @@ Here, we observe which store type is using what markdown pricing majorly and thr
 
 
 ```{r}
+rm(list = setdiff(ls(), "merged_data"))
+```
+
+
+#Training and test data split
+```{r}
+library(caret)
+target <- merged_data$Weekly_Sales
+splitIndex <- caret::createDataPartition(target, p = 0.8, list = FALSE)
+train_data <- merged_data[splitIndex, ]
+test_data <- merged_data[-splitIndex, ]
+```
+
+#Fitting Linear model to training data
+```{r}
+lin_reg <- lm(Weekly_Sales~., data = train_data)
+summary(lin_reg)
+```
+
+```{r}
+lin_reg <- update(lin_reg, .~ Size + Type +Dept + Store + MarkDown1 + MarkDown2 
+                  + MarkDown3 + MarkDown4 + MarkDown5 + Holiday_Ref)
+summary(lin_reg)
+```
+
+```{r}
+predictions <- predict(lin_reg, newdata = test_data)
+MSE <- sum((test_data$Weekly_Sales - predictions)^2)
+cat("\n The sum of squared errors:",MSE)
+```
+
+```{r}
+rsquared <- 1 - (sum((test_data$Weekly_Sales - predictions)^2) / sum((test_data$Weekly_Sales - mean(test_data$Weekly_Sales))^2))
+cat("\n R-squared value:", rsquared)
+```
+
+The R-squared value is too low. This is indicating that the linear model is not
+a reasonable fit as it is not capturing the underlying patterns in the data,
+and it indicates the possibility of non-linearity in the data.
+
+To confirm this, we check the Residual vs Fitted plot.
+
+```{r}
+plot(lin_reg)
+```
+
+From the above we can see that the residual vs fitted values plot is increasing
+(almost like a cone shape), indicating heteroscedasticity, implying that the
+variability of residuals is not constant across the fitted values' levels.
+
+As the data has non-linearity and choosing non-linear models is a good
+option. Hence, we chose RandomForest to capture the non-linear patterns in the
+data. The RandomForest's robustness to overfitting and implicit feature
+engineering makes it a good option for non-linear datasets.
+
+```{r}
+library(randomForest)
+
+set.seed(123)
+
+features <- merged_data[, c("Size","Dept","Store","MarkDown1","MarkDown2","MarkDown3", "MarkDown4", "MarkDown5", "Holiday_Ref")]
+target <- merged_data$Weekly_Sales
+
+splitIndex <- sample(1:nrow(merged_data), size = 0.8*nrow(merged_data))
+train_data <- merged_data[splitIndex, ]
+test_data <- merged_data[-splitIndex, ]
+```
+
+```{r}
+
+
+# Define the training control
+ctrl <- trainControl(method = "cv", number = 5)
+
+# Create the parameter grid
+param_grid <- expand.grid(
+  mtry = c(2, 4, 6)
+)
+
+# Train the Random Forest model with grid search
+rf_model <- train(
+  Weekly_Sales ~ .,
+  data = train_data,
+  method = "rf",
+  metric = "RMSE",
+  trControl = ctrl,
+  tuneGrid = param_grid,
+  ntree = 10
+)
+
+# Print the best parameters
+print(rf_model)
+
+# Make predictions on the test set
+predictions <- predict(rf_model, newdata = test_data)
+
+# Evaluate the model performance
+rmse <- sqrt(mean((test_data$Weekly_Sales - predictions)^2))
+print(paste("Root Mean Squared Error (RMSE):", rmse))
 
 ```
 
+
+```{r}
+rf_model <- randomForest(x = train_data[, names(features)],
+                         y = train_data$Weekly_Sales,ntree = 10, mtry = 6)
+
+```
+
+```{r}
+feature_importance <- importance(rf_model)
+print("Feature Importance:")
+print(feature_importance)
+```
+
+```{r}
+predictions <- predict(rf_model, newdata = test_data[, names(features)])
+
+# Assuming 'test_data' contains the true Weekly_Sales values and 'predictions' has the predicted values
+mae <- mean(abs(test_data$Weekly_Sales - predictions))
+print(paste("Mean Absolute Error (MAE):", mae))
+
+mse <- sum((test_data$Weekly_Sales - predictions)^2)
+print(paste("Mean Squared Error (MSE):", mse))
+
+rsquared <- 1 - (sum((test_data$Weekly_Sales - predictions)^2) / 
+                sum((test_data$Weekly_Sales - mean(test_data$Weekly_Sales))^2))
+print(paste("R-squared:", rsquared))
+```
+
+The R-squared value of the Randomforest is quite high when compared to the
+linear model. This explains that the Randomforest can efficiently explain the 
+variability of data, than the linear model.
