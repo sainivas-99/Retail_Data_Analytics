@@ -135,14 +135,6 @@ library(dplyr)
 cpi_features_data <- filter(features_data, !is.na(CPI)& !is.na(Unemployment))
 cpi_features_data
 ```
-When CPI is NA, then Unemployment is also NA. Gotta check this.
-```{r}
-cormatrix <- cor(cpi_features_data[,-2])
-corrplot::corrplot(cormatrix, method = "number")
-```
-We noticed that there is a negative correlation of -0.3 between CPI and 
-Unemployment, also we got to know that there is significant correlation 
-between Markdown1 and Markdown4.
 
 ```{r}
 str(stores_data)
@@ -458,7 +450,8 @@ merged_data$Holiday_Ref <- ifelse(merged_data$Week == 6, "SuperBowl Week",
                            ifelse(merged_data$Week == 36, "LaborDay Week",
                            ifelse(merged_data$Week == 47|merged_data$Week == 48|
                                     merged_data$Week == 46, "ThanksGiving Week",
-                           ifelse(merged_data$Week == 52, "Christmas Week", "Non Holiday Week"))))
+                           ifelse(merged_data$Week == 52, "Christmas Week", 
+                                  "Non Holiday Week"))))
 
 # Print the updated merged_data
 head(merged_data)
@@ -570,6 +563,9 @@ The below are the results of the analysis:
 3. Fuel Price and CPI shown growth over the years.
 4. Unemployment decreased year after the year.
 5. Temperature is showing a random walk.
+6. It seems that weekly sales is not highly dependent on any of these factors
+    as the sales show not much variability with any of these features.
+    To confirm this we will use the correlation matrix.
 
 ```{r}
 library(corrplot)
@@ -580,9 +576,13 @@ corrplot(correlation_matrix, method = "number")
 ```
 The below are the results of the analysis:
 1. Weekly sales does not show any high correlation with any other parameters.
-2. CPI and Unemployment shows negative correlation.
-3. CPI and Fuel_Price are positively correlated.
-4. Unemployment and Fuel_Price are negatively correlated.
+2. CPI and Unemployment shows high negative correlation, this is expected as the
+CPI increases, especially rapidly, it increases inflation and unemployment is an
+effect of this.
+3. CPI and Fuel_Price are highly positively correlated, this is also expected as
+the CPI increase, indicates the increase in the price of fuel too.
+4. Unemployment and Fuel_Price are negatively correlated, this can be considered
+as effect of CPI on both unemployment and fuel_price.
 
 ##Analysing total yearly sales
 ```{r}
@@ -770,17 +770,10 @@ test_data <- merged_data[-splitIndex, ]
 ```
 
 ```{r}
-
-
-# Define the training control
 ctrl <- trainControl(method = "cv", number = 5)
-
-# Create the parameter grid
 param_grid <- expand.grid(
   mtry = c(2, 4, 6)
 )
-
-# Train the Random Forest model with grid search
 rf_model <- train(
   Weekly_Sales ~ .,
   data = train_data,
@@ -790,36 +783,40 @@ rf_model <- train(
   tuneGrid = param_grid,
   ntree = 10
 )
-
-# Print the best parameters
 print(rf_model)
-
-# Make predictions on the test set
 predictions <- predict(rf_model, newdata = test_data)
-
-# Evaluate the model performance
 rmse <- sqrt(mean((test_data$Weekly_Sales - predictions)^2))
 print(paste("Root Mean Squared Error (RMSE):", rmse))
 
 ```
-
-
+#Fitting Randomforest model
 ```{r}
 rf_model <- randomForest(x = train_data[, names(features)],
                          y = train_data$Weekly_Sales,ntree = 10, mtry = 6)
 
 ```
 
+#Feature importance from Randomforest
+Let us extract important features from Randomforest model
 ```{r}
 feature_importance <- importance(rf_model)
 print("Feature Importance:")
 print(feature_importance)
 ```
+From the above, we see that Size, Department, Store, Markdowns and 
+Holiday_reference are most important features in predicting weekly sales.This
+inturn means:
 
+1. Store-related factors such as size, specific store identity, and department 
+    contribute significantly to weekly sales predictions.
+2. Promotional activities, as indicated by Markdowns, play a crucial role in 
+    increasing sales.
+3. Holidays have a noteworthy impact, suggesting that adjusting strategies 
+    around holiday seasons can be essential for maximizing sales.
+
+#Model evaluation
 ```{r}
 predictions <- predict(rf_model, newdata = test_data[, names(features)])
-
-# Assuming 'test_data' contains the true Weekly_Sales values and 'predictions' has the predicted values
 mae <- mean(abs(test_data$Weekly_Sales - predictions))
 print(paste("Mean Absolute Error (MAE):", mae))
 
