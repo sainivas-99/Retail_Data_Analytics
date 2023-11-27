@@ -133,8 +133,13 @@ Unemp.na.count
 ```{r}
 library(dplyr)
 cpi_features_data <- filter(features_data, !is.na(CPI)& !is.na(Unemployment))
-cpi_features_data
+head(cpi_features_data)
 ```
+```{r}
+features_data <- na.omit(features_data)
+dim(features_data)
+```
+
 
 ```{r}
 str(stores_data)
@@ -563,14 +568,16 @@ The below are the results of the analysis:
 3. Fuel Price and CPI shown growth over the years.
 4. Unemployment decreased year after the year.
 5. Temperature is showing a random walk.
-6. It seems that weekly sales is not highly dependent on any of these factors
+6. Weekly Sales trend of a year is similar to that of it's previous years, and
+    hence, can be useful in predicting the sales trend.
+7. It seems that weekly sales is not highly dependent on any of these factors
     as the sales show not much variability with any of these features.
     To confirm this we will use the correlation matrix.
 
 ```{r}
 library(corrplot)
 correlation_matrix <- cor(filtered_features_sales_merged[,
-      c("Weekly_Sales", "Temperature", "Fuel_Price","IsHoliday", "CPI", 
+      c("Weekly_Sales", "Temperature", "Fuel_Price", "CPI", 
         "Unemployment")])
 corrplot(correlation_matrix, method = "number")
 ```
@@ -583,6 +590,13 @@ effect of this.
 the CPI increase, indicates the increase in the price of fuel too.
 4. Unemployment and Fuel_Price are negatively correlated, this can be considered
 as effect of CPI on both unemployment and fuel_price.
+
+```{r}
+numeric_data <- select_if(merged_data, is.numeric)
+correlation_matrix <- cor(numeric_data)
+corrplot(correlation_matrix, method = "number")
+```
+
 
 ##Analysing total yearly sales
 ```{r}
@@ -704,6 +718,32 @@ Here, we observe which store type is using what markdown pricing majorly and thr
 rm(list = setdiff(ls(), "merged_data"))
 ```
 
+```{r}
+library(leaps)
+regfit.full <- regsubsets(Weekly_Sales ~ ., merged_data, nvmax = 20)
+reg.summary <- summary(regfit.full)
+par(mfrow = c(1, 2))
+plot(reg.summary$rss, xlab = "Number of Variables",
+    ylab = "RSS", type = "l")
+plot(reg.summary$adjr2, xlab = "Number of Variables",
+    ylab = "Adjusted RSq", type = "l")
+par(mfrow = c(1,1))
+```
+
+```{r}
+best_model_index <- which.max(reg.summary$adjr2)
+best_model_features <- names(coef(regfit.full, id = best_model_index))
+print(best_model_features)
+```
+
+```{r}
+which.max(reg.summary$adjr2)
+max(reg.summary$adjr2)
+```
+
+The best subset feature selection gives us all features instead of subset and
+the low adjusted r-squared value improves the probability of the data
+non-linearity.
 
 #Training and test data split
 ```{r}
@@ -721,20 +761,15 @@ summary(lin_reg)
 ```
 
 ```{r}
-lin_reg <- update(lin_reg, .~ Size + Type +Dept + Store + MarkDown1 + MarkDown2 
-                  + MarkDown3 + MarkDown4 + MarkDown5 + Holiday_Ref)
-summary(lin_reg)
+predictions<- predict(lin_reg, newdata = test_data)
+RMSE <- sqrt(sum((test_data$Weekly_Sales - predictions)^2))
+cat("\n The RMSE for the linear model:",RMSE)
 ```
 
 ```{r}
-predictions <- predict(lin_reg, newdata = test_data)
-MSE <- sum((test_data$Weekly_Sales - predictions)^2)
-cat("\n The sum of squared errors:",MSE)
-```
-
-```{r}
-rsquared <- 1 - (sum((test_data$Weekly_Sales - predictions)^2) / sum((test_data$Weekly_Sales - mean(test_data$Weekly_Sales))^2))
-cat("\n R-squared value:", rsquared)
+rsquared <- 1 - (sum((test_data$Weekly_Sales - predictions)^2)/
+              sum((test_data$Weekly_Sales - mean(test_data$Weekly_Sales))^2))
+cat("\n R-squared value for linear model:", rsquared)
 ```
 
 The R-squared value is too low. This is indicating that the linear model is not
@@ -746,7 +781,6 @@ To confirm this, we check the Residual vs Fitted plot.
 ```{r}
 plot(lin_reg)
 ```
-
 From the above we can see that the residual vs fitted values plot is increasing
 (almost like a cone shape), indicating heteroscedasticity, implying that the
 variability of residuals is not constant across the fitted values' levels.
@@ -761,39 +795,45 @@ library(randomForest)
 
 set.seed(123)
 
-features <- merged_data[, c("Size","Dept","Store","MarkDown1","MarkDown2","MarkDown3", "MarkDown4", "MarkDown5", "Holiday_Ref")]
-target <- merged_data$Weekly_Sales
-
-splitIndex <- sample(1:nrow(merged_data), size = 0.8*nrow(merged_data))
-train_data <- merged_data[splitIndex, ]
-test_data <- merged_data[-splitIndex, ]
 ```
 
+
+
 ```{r}
+results <- data.frame(mtry = numeric(), rmse = numeric())
 ctrl <- trainControl(method = "cv", number = 5)
 param_grid <- expand.grid(
-  mtry = c(2, 4, 6)
-)
-rf_model <- train(
-  Weekly_Sales ~ .,
-  data = train_data,
-  method = "rf",
-  metric = "RMSE",
-  trControl = ctrl,
-  tuneGrid = param_grid,
-  ntree = 10
-)
-print(rf_model)
-predictions <- predict(rf_model, newdata = test_data)
-rmse <- sqrt(mean((test_data$Weekly_Sales - predictions)^2))
-print(paste("Root Mean Squared Error (RMSE):", rmse))
+  mtry = c(2,4,6))
 
+for (m in param_grid$mtry) {
+  rf_model <- train(
+    Weekly_Sales ~ .,
+    data = train_data,
+    method = "rf",
+    metric = "RMSE",
+    trControl = ctrl,
+    tuneGrid = data.frame(mtry = m),
+    ntree = 10
+  )
+  
+  predictions <- predict(rf_model, newdata = test_data)
+  rmse <- sqrt(mean((test_data$Weekly_Sales - predictions)^2))
+  results <- rbind(results, data.frame(mtry = m, rmse = rmse))
+}
+
+ggplot(results, aes(x = mtry, y = rmse)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "RMSE vs mtry",
+       x = "mtry",
+       y = "Root Mean Squared Error (RMSE)")
 ```
+
 #Fitting Randomforest model
 ```{r}
-rf_model <- randomForest(x = train_data[, names(features)],
-                         y = train_data$Weekly_Sales,ntree = 10, mtry = 6)
-
+rf_model <- randomForest(x = train_data[,-c(4,5,8,10)],
+                         y = train_data$Weekly_Sales,
+                         ntree = 10, mtry = 6)
 ```
 
 #Feature importance from Randomforest
@@ -802,30 +842,46 @@ Let us extract important features from Randomforest model
 feature_importance <- importance(rf_model)
 print("Feature Importance:")
 print(feature_importance)
+varImpPlot(rf_model)
 ```
-From the above, we see that Size, Department, Store, Markdowns and 
-Holiday_reference are most important features in predicting weekly sales.This
-inturn means:
+From the above, we see that Department, Size and Store are most important 
+features in predicting weekly sales.This inturn means:
 
 1. Store-related factors such as size, specific store identity, and department 
     contribute significantly to weekly sales predictions.
-2. Promotional activities, as indicated by Markdowns, play a crucial role in 
-    increasing sales.
-3. Holidays have a noteworthy impact, suggesting that adjusting strategies 
-    around holiday seasons can be essential for maximizing sales.
+2. CPI and Unemployment have a noteworthy impact on sales.
+3. Promotional events have less effect on the sales when compared to external
+   factors.
 
 #Model evaluation
 ```{r}
-predictions <- predict(rf_model, newdata = test_data[, names(features)])
+predictions <- predict(rf_model, newdata = test_data[,-c(4,5,8,10)])
 mae <- mean(abs(test_data$Weekly_Sales - predictions))
 print(paste("Mean Absolute Error (MAE):", mae))
 
 mse <- sum((test_data$Weekly_Sales - predictions)^2)
 print(paste("Mean Squared Error (MSE):", mse))
 
-rsquared <- 1 - (sum((test_data$Weekly_Sales - predictions)^2) / 
+rsquared_rf <- 1 - (sum((test_data$Weekly_Sales - predictions)^2) / 
                 sum((test_data$Weekly_Sales - mean(test_data$Weekly_Sales))^2))
-print(paste("R-squared:", rsquared))
+print(paste("R-squared:", rsquared_rf))
+```
+
+
+```{r}
+metrics_df <- data.frame(
+  Model = c("Linear Model", "Random Forest"),
+  RMSE = c(RMSE, sqrt(mse)),
+  R2 = c(rsquared, rsquared_rf)
+)
+
+ggplot(metrics_df, aes(x = Model, y = RMSE, fill = Model)) +
+  geom_point(stat = "identity") +
+  labs(title = "Root Mean Squared Error (RMSE) Comparison")
+
+ggplot(metrics_df, aes(x = Model, y = R2, fill = Model)) +
+  geom_point(stat = "identity") +
+  labs(title = "R-squared (R2) Comparison")
 ```
 
 The R-squared value of the Randomforest is quite high when compared to the
