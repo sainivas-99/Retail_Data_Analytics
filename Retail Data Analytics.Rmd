@@ -712,10 +712,73 @@ barplot(t(as.matrix(train_markdown_type[, -1])), col = rainbow(5), legend.text =
 
 ```
 Here, we observe which store type is using what markdown pricing majorly and through diagram we can see that there are 3 store types A, B, and C respectively. So, majorly Markdown 1 is being used for store types A and B. And least significantly Markdown 5 is being used for storetype C.
+```{r}
+
+unique_dept_values <- unique(merged_data$Dept)
+num_unique_dept_values <- length(unique_dept_values)
+
+print(num_unique_dept_values)
+
+```
 
 
 ```{r}
-rm(list = setdiff(ls(), "merged_data"))
+library(dplyr)
+
+data_Dept <- merged_data %>%
+  group_by(Dept) %>%
+  summarise(Weekly_Sales = sum(Weekly_Sales)) %>%
+  ungroup() %>%
+  mutate(Weekly_Sales = Weekly_Sales / 10000,
+         Weekly_Sales = as.integer(Weekly_Sales)) %>%
+  arrange(Weekly_Sales)
+```
+
+
+```{r}
+data_Dept
+```
+```{r}
+
+ggplot(data_Dept, aes(x = Dept, y = Weekly_Sales)) +
+  geom_segment(aes(x = Dept, xend = Dept, y = 0, yend = Weekly_Sales), color = "skyblue") +
+  geom_point(color = "blue", size = 3) +
+  labs(title = "Departmentwise Sales", y = "Sales", x = "Department") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ 
+
+sales_date_store <- aggregate(Weekly_Sales ~ Date + Store, data = merged_data, sum)
+sales_date_store <- sales_date_store[order(sales_date_store$Date, sales_date_store$Store),]
+sales_date_store$Weekly_Sales <- sales_date_store$Weekly_Sales / 10000
+sales_date_store$Weekly_Sales <- as.integer(sales_date_store$Weekly_Sales)
+data_table <- merge(features_data, sales_date_store, by = c("Date", "Store"), all.x = TRUE)
+data_table <- merge(data_table, stores_data[c("Store", "Type")], by = "Store", all.x = TRUE)
+head(data_table, 20)
+```
+```{r}
+data_table$Year <- as.factor(format(data_table$Date, "%Y"))
+ggplot(data_table, aes(x = Year, y = Weekly_Sales, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Weekly Sales by Year and Store Type",
+       x = "Year",
+       y = "Weekly Sales") +
+  theme_minimal()
+```
+
+```{r}
+library(ggplot2)
+data_table$Month <- as.factor(format(data_table$Date, "%m"))
+ggplot(data_table, aes(x = Month, y = Weekly_Sales, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Monthly Sales by Store Type",
+       x = "Month",
+       y = "Weekly Sales") +
+  scale_x_discrete(labels = month.abb) +  # Use abbreviated month names on x-axis
+  theme_minimal()
 ```
 
 ```{r}
@@ -762,7 +825,7 @@ summary(lin_reg)
 
 ```{r}
 predictions<- predict(lin_reg, newdata = test_data)
-RMSE <- sqrt(sum((test_data$Weekly_Sales - predictions)^2))
+RMSE <- sqrt(mean((test_data$Weekly_Sales - predictions)^2))
 cat("\n The RMSE for the linear model:",RMSE)
 ```
 
@@ -859,8 +922,8 @@ predictions <- predict(rf_model, newdata = test_data[,-c(4,5,8,10)])
 mae <- mean(abs(test_data$Weekly_Sales - predictions))
 print(paste("Mean Absolute Error (MAE):", mae))
 
-mse <- sum((test_data$Weekly_Sales - predictions)^2)
-print(paste("Mean Squared Error (MSE):", mse))
+mse <- mean((test_data$Weekly_Sales - predictions)^2)
+print(paste("Root Mean Squared Error (MSE):", sqrt(mse)))
 
 rsquared_rf <- 1 - (sum((test_data$Weekly_Sales - predictions)^2) / 
                 sum((test_data$Weekly_Sales - mean(test_data$Weekly_Sales))^2))
@@ -887,3 +950,6 @@ ggplot(metrics_df, aes(x = Model, y = R2, fill = Model)) +
 The R-squared value of the Randomforest is quite high when compared to the
 linear model. This explains that the Randomforest can efficiently explain the 
 variability of data, than the linear model.
+
+
+
