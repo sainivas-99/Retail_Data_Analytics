@@ -747,6 +747,9 @@ ggplot(data_Dept, aes(x = Dept, y = Weekly_Sales)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+It appears that departments 1-15 and 90-95, along with specific departments like
+38, 40, and 72, have demonstrated higher weekly sales based on our analysis.
+Understanding these patterns can be valuable for decision-making.
 
 ```{r}
  
@@ -768,6 +771,11 @@ ggplot(data_table, aes(x = Year, y = Weekly_Sales, fill = Type)) +
        y = "Weekly Sales") +
   theme_minimal()
 ```
+In a detailed analysis, the data reveals that Store Type A and B have 
+experienced a slight decline in sales on a yearly basis. Conversely, 
+Store C has demonstrated a modest increase in sales over the same period. 
+Further exploration of contributing factors could provide insights into these
+trends.
 
 ```{r}
 library(ggplot2)
@@ -780,6 +788,12 @@ ggplot(data_table, aes(x = Month, y = Weekly_Sales, fill = Type)) +
   scale_x_discrete(labels = month.abb) +  # Use abbreviated month names on x-axis
   theme_minimal()
 ```
+Upon detailed analysis, it's observed that Type A and B stores experience a 
+spike in sales during November and December, likely attributed to holiday 
+seasons. Conversely, January shows a decrease in sales for these stores. In 
+contrast, Type C store maintains consistency throughout every month, displaying 
+minimal deviation in sales patterns. Understanding these monthly variations can 
+aid in formulating targeted strategies for each store type.
 
 ```{r}
 library(leaps)
