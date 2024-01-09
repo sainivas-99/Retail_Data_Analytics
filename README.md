@@ -15,4 +15,5 @@ R: Leveraged R's statistical capabilities for data analysis and machine learning
 RStudio: The project was developed using RStudio, providing an integrated development environment for R.
 
 ## Results
-The project successfully delivered a predictive model capable of forecasting weekly sales. I have utilized various statistical techniques and machine learning methodologies to overcome challenges presented by the dataset. Findings were communicated through insightful visualizations, contributing to data-driven decision-making.
+The project successfully delivered a predictive model capable of forecasting weekly sales. I have utilized various statistical techniques and machine learning methodologies to overcome 
+challenges presented by the dataset. Findings were communicated through insightful visualizations, contributing to data-driven decision-making.
